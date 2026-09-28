@@ -69,9 +69,26 @@ A connection string fica **somente** no `.env`, que está no `.gitignore`.
 
 ## Dashboard (Power BI)
 
-Conexão: **Obter dados → Banco de dados PostgreSQL**. Use o host e a porta do *Session pooler* do Supabase, com o banco `postgres`. Importe a tabela `contratacoes` e as views.
+**Principal conclusão:** onde há disputa entre fornecedores, há economia.
+- **Pregão Eletrônico:** economia mediana de **28,7%** sobre o valor estimado.
+- **Concorrência Eletrônica:** 12,0%.
+- **Dispensa:** 1,5%.
+- **Inexigibilidade:** 0%.
+- **62% das compras** do período foram feitas sem licitação (dispensa ou inexigibilidade).
 
-_(Prints e medidas DAX serão adicionados quando o painel estiver pronto.)_
+### Visão geral
+![Visão geral](docs/pagina1.png)
+
+### Economia por modalidade e maiores órgãos
+![Economia](docs/pagina2.png)
+
+**Modelo:**
+- A tabela `vw_contratacoes_validas` é importada do Supabase (conector PostgreSQL do Power BI) e ligada a uma tabela `Calendario` em DAX.
+- **Medidas:** Compras, Valor Estimado, Valor Homologado, Economia R$, Economia Mediana % (`MEDIANX`), Ticket Médio, % Dispensa e Inexigibilidade e Registros Excluídos (a partir de `vw_qualidade`).
+- **Página 1:** filtros por esfera, UF e modalidade.
+- **Página 2:** o Brasil inteiro, com um filtro "N superior" de 10 órgãos.
+
+**Conexão:** o certificado SSL do Supabase precisa estar instalado no Windows. Sem ele, o Power BI recusa a conexão com o erro "certificado remoto inválido".
 
 ## Tecnologias
 
