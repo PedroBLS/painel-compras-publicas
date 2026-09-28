@@ -28,9 +28,26 @@ O que foi descoberto testando a API e está tratado no ETL:
 - **Carga:** faz *upsert* por `id_compra`, então reprocessar um dia não duplica registros. O commit é feito dia a dia, para que uma falha não perca os dias já carregados.
 - **Incremental:** sem argumentos, recomeça do último dia carregado. Na primeira execução, carrega os últimos 180 dias.
 
-O schema (`schema.sql`) cria a tabela `contratacoes` e duas views:
-- `vw_economia`: economia em R$ e em %, só para compras com valor estimado e valor homologado;
+O schema (`schema.sql`) cria a tabela `contratacoes` (dados brutos) e as views:
+- `vw_contratacoes_validas` e `vw_qualidade`: regras de qualidade (veja abaixo);
+- `vw_economia`: economia em R$ e em %, só para compras válidas com valor estimado e homologado;
 - `vw_resumo_mensal`: quantidade de compras e valores por mês e modalidade.
+
+## Qualidade dos dados
+
+Depois da primeira carga (155.169 contratações, de 01/04 a 24/09/2026), apareceram valores claramente digitados errado na fonte. Por exemplo, uma dispensa estimada em **R$ 3,9 trilhões** e homologada em **R$ 60 mil**. Apenas 70 registros acima de R$ 1 bilhão somavam **R$ 22,5 trilhões**, contra R$ 522 bilhões de todo o resto.
+
+Regras aplicadas em `vw_contratacoes_validas`, sem apagar nada da tabela bruta:
+
+| Regra | Registros excluídos |
+|---|---|
+| Valor estimado acima de R$ 1 bilhão | 70 |
+| Economia fora de 0% a 90% (homologado maior que o estimado ou menor que 10% dele) | 4.399 |
+| **Válidos para o painel** | **150.700** |
+
+A view `vw_qualidade` recalcula esses números a cada carga. Mesmo depois do filtro, a economia é assimétrica: **mediana de 2,0%** contra média de 15,8%. Por isso o painel usa a mediana.
+
+Outro ponto de atenção: nos meses mais recentes, o valor homologado é menor porque muitos processos ainda não terminaram. A comparação entre meses deve considerar isso.
 
 ## Como executar
 

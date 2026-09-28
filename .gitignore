@@ -4,3 +4,6 @@ __pycache__/
 .pytest_cache/
 *.csv
 *.pbix.bak
+Supabase.txt
+*.pbix
+*.crt
