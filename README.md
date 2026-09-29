@@ -113,6 +113,32 @@ python etl.py
 
 A connection string fica **somente** no `.env`, que está no `.gitignore`.
 
+## Carga diária na AWS
+
+A carga incremental roda sozinha todo dia na AWS, sem servidor:
+
+```
+EventBridge (cron 07:00 BRT) ──► Lambda painel-etl (Python 3.12) ──┬──► Supabase (upsert)
+                                         │                          └──► S3: contratacoes/dia=AAAA-MM-DD.jsonl (cópia bruta)
+                                         └──► CloudWatch Logs + alarme de erro ──► SNS (e-mail)
+```
+
+- **Lambda:** `lambda_function.py` chama o mesmo `etl.main()` usado localmente. O `build_lambda.py` gera o `lambda.zip` com as dependências compiladas para o Linux do Lambda (`pip --platform manylinux2014_x86_64`).
+- **Configuração:**
+  - 512 MB de memória;
+  - tempo limite de 15 minutos, porque a API às vezes é lenta;
+  - `DATABASE_URL` e `S3_BUCKET` ficam nas variáveis de ambiente da função, fora do código.
+- **Permissões (IAM):** além dos logs, a função só tem `s3:PutObject` no bucket do projeto (menor privilégio).
+- **Monitoramento:** um alarme do CloudWatch na métrica `Errors` manda e-mail pelo SNS quando a execução falha.
+- **Custos:** a conta tem o alerta *Zero spend budget*. Uma execução por dia fica dentro do nível gratuito do Lambda.
+- **Lições do deploy:**
+  - O pip roda no Python local (3.14) e pulou o `typing_extensions`, que o psycopg só exige no 3.12. Por isso o pacote passou a incluí-lo explicitamente.
+  - A API de Dados Abertos publica os dias com alguns dias de atraso em relação ao PNCP. Como a carga recomeça sempre do último dia salvo, os dias atrasados entram nas execuções seguintes.
+
+```bash
+python build_lambda.py   # gera lambda.zip para subir no console do Lambda
+```
+
 ## Dashboard (Power BI)
 
 **Principal conclusão:** onde há disputa entre fornecedores, há economia.
@@ -138,6 +164,6 @@ A connection string fica **somente** no `.env`, que está no `.gitignore`.
 
 ## Tecnologias
 
-Python (requests, psycopg), PostgreSQL / Supabase, BigQuery, SQL, dbt, pytest, Power BI.
+Python (requests, psycopg), PostgreSQL / Supabase, BigQuery, SQL, dbt, AWS (Lambda, EventBridge, S3, CloudWatch, SNS, IAM), pytest, Power BI.
 
 Desenvolvido por Pedro Brandão Leal dos Santos, com apoio do **Claude Code** na escrita do código.

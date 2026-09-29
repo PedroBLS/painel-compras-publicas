@@ -10,6 +10,7 @@ Uso:
 """
 import argparse
 import csv
+import json
 import os
 import sys
 import time
@@ -120,12 +121,17 @@ UPSERT = (
 )
 
 
-def main():
+def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--inicio", type=date.fromisoformat)
     p.add_argument("--fim", type=date.fromisoformat, default=date.today())
     p.add_argument("--csv", help="grava em CSV em vez do banco (para testar sem Supabase)")
-    a = p.parse_args()
+    a = p.parse_args(argv)
+    bucket = os.environ.get("S3_BUCKET")  # na AWS, guarda também uma cópia bruta de cada dia no S3
+    if bucket:
+        import boto3  # já vem instalado no ambiente do Lambda
+
+        s3 = boto3.client("s3")
 
     conn = None
     if not a.csv:
@@ -162,6 +168,9 @@ def main():
             with conn.cursor() as cur:
                 cur.executemany(UPSERT, linhas)
             conn.commit()  # commit por dia: uma falha não perde os dias anteriores
+        if bucket and linhas:
+            corpo = "\n".join(json.dumps(l, default=str, ensure_ascii=False) for l in linhas)
+            s3.put_object(Bucket=bucket, Key=f"contratacoes/dia={dia}.jsonl", Body=corpo.encode("utf-8"))
         total += len(linhas)
         print(f"{dia}: {len(linhas)} contratações (acumulado {total})", flush=True)
 
