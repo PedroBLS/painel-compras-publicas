@@ -1,10 +1,12 @@
 # Painel de Compras Públicas (PNCP)
 
-Pipeline de dados que coleta as **contratações públicas da Lei 14.133/2021** publicadas no PNCP, grava num **PostgreSQL (Supabase)** e alimenta um **dashboard no Power BI**. O painel mostra volume, valores e economia (estimado × homologado) por modalidade, órgão, UF e mês.
+Pipeline de dados que coleta as **contratações públicas da Lei 14.133/2021** publicadas no PNCP, grava num **PostgreSQL (Supabase)** e alimenta um **dashboard no Power BI**. As mesmas transformações e testes rodam em **dbt** tanto no PostgreSQL quanto no **BigQuery** (data warehouse do Google). O painel mostra volume, valores e economia (estimado × homologado) por modalidade, órgão, UF e mês.
 
 ```
-API Compras.gov.br (PNCP) ──► etl.py (Python) ──► PostgreSQL/Supabase ──► dbt (modelos + testes) ──► Power BI
-                              extração diária      public.contratacoes     schema analytics
+API Compras.gov.br (PNCP) ──► etl.py ──► PostgreSQL/Supabase ──┬──► views SQL ──► Power BI
+                                         public.contratacoes     ├──► dbt (schema analytics, 18 passos)
+                                                                 └──► load_bigquery.py ──► BigQuery (pncp)
+                                                                                            └──► dbt (dataset analytics, 18 passos)
 ```
 
 ## Fonte dos dados
@@ -60,6 +62,22 @@ python -m venv .venv-dbt                   # dbt ainda não suporta Python 3.14:
 ```
 
 O `run_dbt.py` repassa as credenciais do `.env` ao `profiles.yml` por variáveis de ambiente, então a senha não fica em nenhum arquivo versionado.
+
+### O mesmo projeto dbt no BigQuery
+
+Para praticar com um data warehouse na nuvem, o projeto também roda no **BigQuery** (sandbox gratuito):
+
+```bash
+.venv-dbt\Scripts\python load_bigquery.py                    # copia public.contratacoes → BigQuery (dataset pncp)
+.venv-dbt\Scripts\python run_dbt.py build --target bigquery  # mesmos modelos e testes no BigQuery
+```
+
+- A autenticação usa uma **conta de serviço** do Google Cloud com os papéis *BigQuery Data Editor* e *BigQuery Job User*. A chave `.json` fica fora do repositório, em `~/.gcp/dbt-bigquery.json`.
+- **O que muda entre os bancos:**
+  - o schema da fonte é `public` no PostgreSQL e `pncp` no BigQuery, escolhido pelo `target.type`;
+  - a data usa `cast(... as date)` e a macro `dbt.date_trunc`, que funcionam nos dois;
+  - a **mediana** muda de sintaxe: no PostgreSQL é agregada (`percentile_cont ... within group`), no BigQuery só existe como função de janela (`percentile_cont(x, 0.5) over (...)`).
+- **Resultado:** os dois bancos passam nos 18 passos, e a economia mediana por modalidade é **idêntica** nos dois (pregão 28,69%, dispensa 1,47%). Os 155.169 registros brutos chegam iguais, e 150.700 passam nas regras.
 
 ## Qualidade dos dados
 
@@ -120,6 +138,6 @@ A connection string fica **somente** no `.env`, que está no `.gitignore`.
 
 ## Tecnologias
 
-Python (requests, psycopg), PostgreSQL / Supabase, SQL, dbt, pytest, Power BI.
+Python (requests, psycopg), PostgreSQL / Supabase, BigQuery, SQL, dbt, pytest, Power BI.
 
 Desenvolvido por Pedro Brandão Leal dos Santos, com apoio do **Claude Code** na escrita do código.

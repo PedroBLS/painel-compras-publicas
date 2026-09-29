@@ -12,3 +12,11 @@ compras_publicas:
       schema: analytics
       sslmode: require
       threads: 4
+    bigquery:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('DBT_BQ_PROJECT') }}"
+      keyfile: "{{ env_var('DBT_BQ_KEYFILE') }}"
+      dataset: analytics
+      location: US
+      threads: 4

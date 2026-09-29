@@ -22,6 +22,6 @@ select
     valor_estimado,
     valor_homologado,
     data_publicacao,
-    data_publicacao::date as data,
-    date_trunc('month', data_publicacao)::date as mes
+    cast(data_publicacao as date) as data,
+    cast({{ dbt.date_trunc('month', 'data_publicacao') }} as date) as mes
 from {{ source('pncp', 'contratacoes') }}

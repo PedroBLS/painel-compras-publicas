@@ -3,7 +3,7 @@ version: 2
 sources:
   - name: pncp
     description: Dados brutos carregados pelo etl.py (API Dados Abertos Compras.gov.br / PNCP).
-    schema: public
+    schema: "{{ 'pncp' if target.type == 'bigquery' else 'public' }}"
     tables:
       - name: contratacoes
         columns:

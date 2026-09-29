@@ -1,2 +1,5 @@
 dbt-postgres
+dbt-bigquery
+psycopg[binary]
+google-cloud-bigquery
 python-dotenv
