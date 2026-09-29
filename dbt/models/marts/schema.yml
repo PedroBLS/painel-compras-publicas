@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: fct_contratacoes_validas
+    description: Contratações que passaram nas regras de qualidade; base do painel no Power BI.
+    columns:
+      - name: id_compra
+        data_tests: [unique, not_null]
+      - name: modalidade
+        data_tests: [not_null]
+  - name: mart_economia_por_modalidade
+    description: Compras, valores e economia mediana por modalidade.
+    columns:
+      - name: modalidade
+        data_tests: [unique, not_null]
+  - name: mart_qualidade
+    description: Contagem de registros excluídos por regra de qualidade.

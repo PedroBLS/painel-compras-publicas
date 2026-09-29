@@ -1,0 +1,13 @@
+name: compras_publicas
+version: "1.0.0"
+profile: compras_publicas
+
+model-paths: ["models"]
+test-paths: ["tests"]
+
+models:
+  compras_publicas:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

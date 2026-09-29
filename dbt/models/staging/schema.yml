@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: stg_contratacoes
+    description: Contratações com nomes legíveis (esfera) e colunas de data/mês.
+    columns:
+      - name: id_compra
+        data_tests: [unique, not_null]
+      - name: esfera_nome
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Federal', 'Estadual', 'Municipal', 'Distrital', 'Não informado']

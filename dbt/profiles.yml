@@ -1,0 +1,14 @@
+# Credenciais vêm de variáveis de ambiente, preenchidas por run_dbt.py a partir do .env.
+compras_publicas:
+  target: supabase
+  outputs:
+    supabase:
+      type: postgres
+      host: "{{ env_var('DBT_HOST') }}"
+      port: "{{ env_var('DBT_PORT') | int }}"
+      user: "{{ env_var('DBT_USER') }}"
+      password: "{{ env_var('DBT_PASSWORD') }}"
+      dbname: "{{ env_var('DBT_DBNAME') }}"
+      schema: analytics
+      sslmode: require
+      threads: 4

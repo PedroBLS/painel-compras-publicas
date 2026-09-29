@@ -3,8 +3,8 @@
 Pipeline de dados que coleta as **contratações públicas da Lei 14.133/2021** publicadas no PNCP, grava num **PostgreSQL (Supabase)** e alimenta um **dashboard no Power BI**. O painel mostra volume, valores e economia (estimado × homologado) por modalidade, órgão, UF e mês.
 
 ```
-API Dados Abertos Compras.gov.br ──► etl.py (Python) ──► PostgreSQL (Supabase) ──► Power BI
-      (PNCP, Lei 14.133)             extração diária       tabela + views          dashboard
+API Compras.gov.br (PNCP) ──► etl.py (Python) ──► PostgreSQL/Supabase ──► dbt (modelos + testes) ──► Power BI
+                              extração diária      public.contratacoes     schema analytics
 ```
 
 ## Fonte dos dados
@@ -32,6 +32,34 @@ O schema (`schema.sql`) cria a tabela `contratacoes` (dados brutos) e as views:
 - `vw_contratacoes_validas` e `vw_qualidade`: regras de qualidade (veja abaixo);
 - `vw_economia`: economia em R$ e em %, só para compras válidas com valor estimado e homologado;
 - `vw_resumo_mensal`: quantidade de compras e valores por mês e modalidade.
+
+## Transformações com dbt
+
+As regras de negócio e de qualidade ficam versionadas como modelos **dbt** (pasta `dbt/`), materializados no schema `analytics`:
+
+| Camada | Modelo | O que faz |
+|---|---|---|
+| source | `pncp.contratacoes` | tabela bruta carregada pelo `etl.py` |
+| staging | `stg_contratacoes` (view) | nomes legíveis (esfera), colunas de data e mês |
+| marts | `fct_contratacoes_validas` (tabela) | aplica as regras de qualidade e calcula a economia % |
+| marts | `mart_economia_por_modalidade` | compras, valores e economia mediana por modalidade |
+| marts | `mart_qualidade` | quantos registros cada regra excluiu |
+
+O comando `dbt build` roda **18 passos**: 4 modelos e 14 testes de dados.
+- **Testes genéricos:** `unique` e `not_null` no `id_compra`, e `accepted_values` na esfera.
+- **Testes singulares em `dbt/tests/`**, com as regras do projeto:
+  - nenhum registro válido acima de R$ 1 bilhão;
+  - economia sempre entre 0% e 90%;
+  - total menos excluídos igual aos válidos, para que nenhum registro suma sem explicação.
+
+```bash
+python -m venv .venv-dbt                   # dbt ainda não suporta Python 3.14: use 3.11/3.12
+.venv-dbt\Scripts\pip install -r requirements-dbt.txt
+.venv-dbt\Scripts\python run_dbt.py build   # lê a mesma DATABASE_URL do .env
+.venv-dbt\Scripts\python run_dbt.py docs generate
+```
+
+O `run_dbt.py` repassa as credenciais do `.env` ao `profiles.yml` por variáveis de ambiente, então a senha não fica em nenhum arquivo versionado.
 
 ## Qualidade dos dados
 
@@ -92,6 +120,6 @@ A connection string fica **somente** no `.env`, que está no `.gitignore`.
 
 ## Tecnologias
 
-Python (requests, psycopg), PostgreSQL / Supabase, SQL (views), pytest, Power BI.
+Python (requests, psycopg), PostgreSQL / Supabase, SQL, dbt, pytest, Power BI.
 
 Desenvolvido por Pedro Brandão Leal dos Santos, com apoio do **Claude Code** na escrita do código.

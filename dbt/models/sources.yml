@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: pncp
+    description: Dados brutos carregados pelo etl.py (API Dados Abertos Compras.gov.br / PNCP).
+    schema: public
+    tables:
+      - name: contratacoes
+        columns:
+          - name: id_compra
+            data_tests: [unique, not_null]
+          - name: data_publicacao
+            data_tests: [not_null]
