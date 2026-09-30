@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"  # mesma versão do Lambda
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pytest -v
+
+  dbt:
+    runs-on: ubuntu-latest
+    # dbt parse valida SQL, Jinja e os testes sem conectar no banco; as credenciais são só de mentira
+    env:
+      DBT_HOST: localhost
+      DBT_PORT: "5432"
+      DBT_USER: ci
+      DBT_PASSWORD: ci
+      DBT_DBNAME: ci
+      DBT_BQ_PROJECT: ci
+      DBT_BQ_KEYFILE: ci.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install dbt-postgres dbt-bigquery
+      - run: dbt parse --project-dir dbt --profiles-dir dbt
+      - run: dbt parse --project-dir dbt --profiles-dir dbt --target bigquery

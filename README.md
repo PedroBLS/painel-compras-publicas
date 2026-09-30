@@ -1,5 +1,7 @@
 # Painel de Compras Públicas (PNCP)
 
+[![CI](https://github.com/PedroBLS/painel-compras-publicas/actions/workflows/ci.yml/badge.svg)](https://github.com/PedroBLS/painel-compras-publicas/actions/workflows/ci.yml)
+
 Pipeline de dados que coleta as **contratações públicas da Lei 14.133/2021** publicadas no PNCP, grava num **PostgreSQL (Supabase)** e alimenta um **dashboard no Power BI**. As mesmas transformações e testes rodam em **dbt** tanto no PostgreSQL quanto no **BigQuery** (data warehouse do Google). O painel mostra volume, valores e economia (estimado × homologado) por modalidade, órgão, UF e mês.
 
 ```
