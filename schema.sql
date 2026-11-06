@@ -29,6 +29,12 @@ CREATE TABLE IF NOT EXISTS contratacoes (
 CREATE INDEX IF NOT EXISTS ix_contratacoes_data ON contratacoes (data_publicacao);
 CREATE INDEX IF NOT EXISTS ix_contratacoes_uf ON contratacoes (uf);
 
+-- O schema public do Supabase fica exposto na API REST (chave anon é pública).
+-- Com RLS ligado e sem policies, a API não lê nem altera nada; ETL, dbt e Power BI
+-- conectam direto como dono da tabela e não são afetados.
+ALTER TABLE contratacoes ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON contratacoes FROM anon, authenticated;
+
 -- Regras de qualidade (decididas após conferir a carga de 04-09/2026):
 -- a fonte traz valores digitados errado (ex.: dispensa estimada em R$ 3,9 trilhões e
 -- homologada em R$ 60 mil). Os dados brutos ficam em `contratacoes`; o painel usa esta view.
@@ -80,3 +86,11 @@ SELECT
     sum(valor_homologado) AS valor_homologado
 FROM vw_contratacoes_validas
 GROUP BY 1, 2;
+
+-- Views rodam com a permissão de quem criou; security_invoker faz respeitarem o RLS,
+-- e o REVOKE tira o acesso da API.
+ALTER VIEW vw_contratacoes_validas SET (security_invoker = on);
+ALTER VIEW vw_qualidade SET (security_invoker = on);
+ALTER VIEW vw_economia SET (security_invoker = on);
+ALTER VIEW vw_resumo_mensal SET (security_invoker = on);
+REVOKE ALL ON vw_contratacoes_validas, vw_qualidade, vw_economia, vw_resumo_mensal FROM anon, authenticated;
